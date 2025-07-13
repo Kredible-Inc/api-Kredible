@@ -1,44 +1,37 @@
-import { Injectable, OnModuleInit } from "@nestjs/common";
-import * as admin from "firebase-admin";
-import { ConfigService } from "@nestjs/config";
+import { Injectable } from "@nestjs/common";
+import { db } from "../config/config";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  query,
+  where,
+  limit,
+} from "firebase/firestore";
 
 @Injectable()
-export class FirebaseService implements OnModuleInit {
-  private firestore: admin.firestore.Firestore;
-
-  constructor(private configService: ConfigService) {}
-
-  async onModuleInit() {
-    // Initialize Firebase Admin SDK
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-        projectId:
-          this.configService.get("FIREBASE_PROJECT_ID") || "your-project-id",
-      });
-    }
-
-    this.firestore = admin.firestore();
-  }
-
-  getFirestore(): admin.firestore.Firestore {
-    return this.firestore;
-  }
-
+export class FirebaseService {
   // Platform operations
   async createPlatform(platformData: any): Promise<any> {
-    const docRef = await this.firestore
-      .collection("platforms")
-      .add(platformData);
+    const docRef = await addDoc(collection(db, "platforms"), {
+      ...platformData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
     return { id: docRef.id, ...platformData };
   }
 
   async getPlatformByApiKey(apiKey: string): Promise<any> {
-    const snapshot = await this.firestore
-      .collection("platforms")
-      .where("apiKey", "==", apiKey)
-      .limit(1)
-      .get();
+    const platformsQuery = query(
+      collection(db, "platforms"),
+      where("apiKey", "==", apiKey),
+      limit(1)
+    );
+    const snapshot = await getDocs(platformsQuery);
 
     if (snapshot.empty) {
       return null;
@@ -50,16 +43,21 @@ export class FirebaseService implements OnModuleInit {
 
   // User operations
   async createUser(userData: any): Promise<any> {
-    const docRef = await this.firestore.collection("users").add(userData);
+    const docRef = await addDoc(collection(db, "users"), {
+      ...userData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
     return { id: docRef.id, ...userData };
   }
 
   async getUserByWalletAddress(walletAddress: string): Promise<any> {
-    const snapshot = await this.firestore
-      .collection("users")
-      .where("walletAddress", "==", walletAddress)
-      .limit(1)
-      .get();
+    const usersQuery = query(
+      collection(db, "users"),
+      where("walletAddress", "==", walletAddress),
+      limit(1)
+    );
+    const snapshot = await getDocs(usersQuery);
 
     if (snapshot.empty) {
       return null;
@@ -76,15 +74,19 @@ export class FirebaseService implements OnModuleInit {
     timestamp: Date;
     score?: number;
   }): Promise<void> {
-    await this.firestore.collection("queries").add(queryData);
+    await addDoc(collection(db, "queries"), {
+      ...queryData,
+      createdAt: serverTimestamp(),
+    });
   }
 
   // Statistics
   async getPlatformStats(platformId: string): Promise<any> {
-    const snapshot = await this.firestore
-      .collection("queries")
-      .where("platformId", "==", platformId)
-      .get();
+    const queriesQuery = query(
+      collection(db, "queries"),
+      where("platformId", "==", platformId)
+    );
+    const snapshot = await getDocs(queriesQuery);
 
     return {
       totalQueries: snapshot.size,
@@ -93,10 +95,8 @@ export class FirebaseService implements OnModuleInit {
   }
 
   async getAllStats(): Promise<any> {
-    const platformsSnapshot = await this.firestore
-      .collection("platforms")
-      .get();
-    const queriesSnapshot = await this.firestore.collection("queries").get();
+    const platformsSnapshot = await getDocs(collection(db, "platforms"));
+    const queriesSnapshot = await getDocs(collection(db, "queries"));
 
     return {
       totalPlatforms: platformsSnapshot.size,
@@ -106,5 +106,33 @@ export class FirebaseService implements OnModuleInit {
         ...doc.data(),
       })),
     };
+  }
+
+  // Update operations
+  async updatePlatform(platformId: string, data: any): Promise<void> {
+    const docRef = doc(db, "platforms", platformId);
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async updateUser(userId: string, data: any): Promise<void> {
+    const docRef = doc(db, "users", userId);
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  // Delete operations
+  async deletePlatform(platformId: string): Promise<void> {
+    const docRef = doc(db, "platforms", platformId);
+    await deleteDoc(docRef);
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    const docRef = doc(db, "users", userId);
+    await deleteDoc(docRef);
   }
 }

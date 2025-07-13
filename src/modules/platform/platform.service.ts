@@ -1,33 +1,74 @@
-import { Injectable } from "@nestjs/common";
-import { FirebaseService } from "../../firebase/firebase.service";
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import {
+  createPlatform,
+  getPlatformByApiKey,
+  updatePlatform,
+  getPlatformById,
+} from "../../services/platform.service";
+import { Platform } from "../../services/platform.service";
 import { v4 as uuidv4 } from "uuid";
 
 @Injectable()
 export class PlatformService {
-  constructor(private firebaseService: FirebaseService) {}
-
   async createPlatform(platformData: {
     name: string;
     description?: string;
     contactEmail: string;
     planType: "basic" | "premium" | "enterprise";
   }): Promise<any> {
-    const apiKey = uuidv4();
-    const plan = this.getDefaultPlan(platformData.planType);
-
-    const platform = {
-      ...platformData,
-      apiKey,
-      plan,
-      createdAt: new Date(),
-      isActive: true,
+    // Create platform without API key initially
+    const platform: Platform = {
+      name: platformData.name,
+      description: platformData.description,
+      contactEmail: platformData.contactEmail,
+      planType: platformData.planType,
     };
 
-    return await this.firebaseService.createPlatform(platform);
+    const createdPlatform = await createPlatform(platform);
+
+    // Return platform without API key
+    return {
+      id: createdPlatform.id,
+      name: createdPlatform.name,
+      description: createdPlatform.description,
+      contactEmail: createdPlatform.contactEmail,
+      planType: createdPlatform.planType,
+    };
+  }
+
+  async getApiKey(platformId: string, contactEmail: string): Promise<any> {
+    // Get platform by ID
+    const platform = await getPlatformById(platformId);
+
+    if (!platform) {
+      throw new NotFoundException("Platform not found");
+    }
+
+    // Verify contact email matches
+    if (platform.contactEmail !== contactEmail) {
+      throw new UnauthorizedException("Invalid contact email");
+    }
+
+    // Generate API key if it doesn't exist
+    if (!platform.apiKey) {
+      const apiKey = `pk_${uuidv4().replace(/-/g, "")}`;
+      await updatePlatform(platformId, { apiKey });
+      platform.apiKey = apiKey;
+    }
+
+    return {
+      apiKey: platform.apiKey,
+      platformId: platform.id,
+      platformName: platform.name,
+    };
   }
 
   async getPlatformByApiKey(apiKey: string): Promise<any> {
-    return await this.firebaseService.getPlatformByApiKey(apiKey);
+    return await getPlatformByApiKey(apiKey);
   }
 
   async updatePlatformPlan(
@@ -35,7 +76,7 @@ export class PlatformService {
     planType: "basic" | "premium" | "enterprise"
   ): Promise<any> {
     const plan = this.getDefaultPlan(planType);
-    // TODO: Implement plan update in Firebase
+    await updatePlatform(platformId, { planType });
     return { platformId, plan };
   }
 
