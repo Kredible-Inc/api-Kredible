@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   Query,
+  Request,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -13,9 +14,12 @@ import {
   ApiResponse,
   ApiBody,
   ApiQuery,
+  ApiParam,
+  ApiHeader,
 } from "@nestjs/swagger";
 import { PlatformService } from "./platform.service";
 import { AdminKeyGuard } from "../../auth/admin-key.guard";
+import { ApiKeyGuard } from "../../auth/api-key.guard";
 import { ApiResponseDto } from "../../common/dto/api-response.dto";
 import { CreatePlatformDto } from "./dto/create-platform.dto";
 import { GetApiKeyDto } from "./dto/get-api-key.dto";
@@ -24,6 +28,7 @@ import {
   ApiKeyResponseDto,
 } from "./dto/platform-response.dto";
 import { PlatformByOwnerDto } from "./dto/platforms-by-owner.dto";
+import { PlatformUsageResponseDto } from "./dto/platform-usage.dto";
 
 @ApiTags("platforms")
 @Controller("platforms")
@@ -60,7 +65,7 @@ export class PlatformController {
               example:
                 "GABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZA567BCD890EFG",
             },
-            planType: { type: "string", example: "basic" },
+            planType: { type: "string", example: "premium" },
           },
         },
         timestamp: { type: "string", example: "2025-07-12T23:30:00.000Z" },
@@ -121,7 +126,7 @@ export class PlatformController {
                 example:
                   "GABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZA567BCD890EFG",
               },
-              planType: { type: "string", example: "basic" },
+              planType: { type: "string", example: "premium" },
               hasApiKey: { type: "boolean", example: true },
             },
           },
@@ -140,6 +145,54 @@ export class PlatformController {
       true,
       "Platforms retrieved successfully",
       platforms
+    );
+  }
+
+  @Get("usage")
+  @UseGuards(ApiKeyGuard)
+  @ApiOperation({
+    summary: "Get platform usage information",
+    description:
+      "Retrieves current usage statistics for the authenticated platform",
+  })
+  @ApiHeader({ name: "x-api-key", description: "Platform API key" })
+  @ApiResponse({
+    status: 200,
+    description: "Usage information retrieved successfully",
+    schema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean", example: true },
+        message: {
+          type: "string",
+          example: "Usage information retrieved successfully",
+        },
+        data: {
+          type: "object",
+          properties: {
+            planType: { type: "string", example: "premium" },
+            maxQueries: { type: "number", example: 1000 },
+            remainingQueries: { type: "number", example: 750 },
+            usedQueries: { type: "number", example: 250 },
+            usagePercentage: { type: "number", example: 25 },
+          },
+        },
+        timestamp: { type: "string", example: "2025-07-12T23:30:00.000Z" },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: "Unauthorized - Invalid API key" })
+  @ApiResponse({ status: 404, description: "No plan found for platform" })
+  async getUsage(
+    @Request() req: any
+  ): Promise<ApiResponseDto<PlatformUsageResponseDto>> {
+    const platform = req.platform;
+    const usage = await this.platformService.getUsage(platform.id);
+
+    return new ApiResponseDto(
+      true,
+      "Usage information retrieved successfully",
+      usage
     );
   }
 

@@ -11,6 +11,7 @@ import {
   getPlatformsByOwnerAddress,
 } from "../../services/platform.service";
 import { Platform } from "../../services/platform.service";
+import { getPlanUsage } from "../../services/plan.service";
 import { v4 as uuidv4 } from "uuid";
 
 @Injectable()
@@ -20,7 +21,7 @@ export class PlatformService {
     description?: string;
     contactEmail: string;
     ownerAddress: string;
-    planType: "basic" | "premium" | "enterprise";
+    planType: "free" | "premium" | "premium_pro";
   }): Promise<any> {
     // Create platform without API key initially
     const platform: Platform = {
@@ -89,34 +90,44 @@ export class PlatformService {
     return await getPlatformByApiKey(apiKey);
   }
 
+  async getUsage(platformId: string): Promise<any> {
+    const usage = await getPlanUsage(platformId);
+
+    if (!usage) {
+      throw new NotFoundException("No plan found for platform");
+    }
+
+    return usage;
+  }
+
   async updatePlatformPlan(
     platformId: string,
-    planType: "basic" | "premium" | "enterprise"
+    planType: "free" | "premium" | "premium_pro"
   ): Promise<any> {
     const plan = this.getDefaultPlan(planType);
     await updatePlatform(platformId, { planType });
     return { platformId, plan };
   }
 
-  private getDefaultPlan(planType: "basic" | "premium" | "enterprise") {
+  private getDefaultPlan(planType: "free" | "premium" | "premium_pro") {
     const plans = {
-      basic: {
-        type: "basic",
-        monthlyQueries: 1000,
-        remainingQueries: 1000,
-        price: 99,
+      free: {
+        type: "free",
+        monthlyQueries: 100,
+        remainingQueries: 100,
+        price: 0,
       },
       premium: {
         type: "premium",
+        monthlyQueries: 1000,
+        remainingQueries: 1000,
+        price: 50,
+      },
+      premium_pro: {
+        type: "premium_pro",
         monthlyQueries: 10000,
         remainingQueries: 10000,
-        price: 299,
-      },
-      enterprise: {
-        type: "enterprise",
-        monthlyQueries: 100000,
-        remainingQueries: 100000,
-        price: 999,
+        price: 150,
       },
     };
 

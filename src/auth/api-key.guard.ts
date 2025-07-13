@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { Request } from "express";
 import { FirebaseService } from "../firebase/firebase.service";
+import { getPlanUsage } from "../services/plan.service";
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -25,13 +26,20 @@ export class ApiKeyGuard implements CanActivate {
       throw new UnauthorizedException("Invalid API Key");
     }
 
-    // Check if platform has remaining queries
-    if (platform.plan && platform.plan.remainingQueries <= 0) {
+    // Check plan usage
+    const planUsage = await getPlanUsage(platform.id);
+
+    if (!planUsage) {
+      throw new UnauthorizedException("No plan found for platform");
+    }
+
+    if (planUsage.remainingQueries <= 0) {
       throw new UnauthorizedException("No remaining queries in plan");
     }
 
-    // Attach platform info to request for later use
+    // Attach platform and plan info to request for later use
     request["platform"] = platform;
+    request["planUsage"] = planUsage;
 
     return true;
   }

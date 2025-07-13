@@ -12,6 +12,7 @@ import {
   limit,
   getDoc,
 } from "firebase/firestore";
+import { createPlan, getDefaultPlans } from "./plan.service";
 
 export interface Platform {
   id?: string;
@@ -19,7 +20,7 @@ export interface Platform {
   description?: string;
   contactEmail: string;
   ownerAddress: string;
-  planType: "basic" | "premium" | "enterprise";
+  planType: "free" | "premium" | "premium_pro";
   apiKey?: string;
   createdAt?: any;
   updatedAt?: any;
@@ -45,7 +46,22 @@ export const createPlatform = async (platform: Platform): Promise<Platform> => {
     updatedAt: serverTimestamp(),
   });
 
-  return { id: docRef.id, ...platform };
+  const createdPlatform = { id: docRef.id, ...platform };
+
+  // Create default plan for the platform
+  const defaultPlans = getDefaultPlans();
+  const defaultPlan = defaultPlans[platform.planType] || defaultPlans.free;
+
+  await createPlan({
+    platformId: createdPlatform.id!,
+    planType: platform.planType,
+    features: defaultPlan.features,
+    price: defaultPlan.price,
+    maxQueries: defaultPlan.maxQueries,
+    remainingQueries: defaultPlan.maxQueries, // Start with full quota
+  });
+
+  return createdPlatform;
 };
 
 export const getPlatformById = async (

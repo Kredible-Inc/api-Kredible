@@ -34,9 +34,9 @@ export class CreatePlatformDto {
 
   @ApiProperty({
     description: "Type of plan for the platform",
-    enum: ["basic", "premium", "enterprise"],
-    example: "basic",
+    enum: ["free", "premium", "premium_pro"],
+    example: "premium",
   })
-  @IsEnum(["basic", "premium", "enterprise"])
-  planType: "basic" | "premium" | "enterprise";
+  @IsEnum(["free", "premium", "premium_pro"])
+  planType: "free" | "premium" | "premium_pro";
 }

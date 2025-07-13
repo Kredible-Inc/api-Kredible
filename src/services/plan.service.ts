@@ -10,15 +10,17 @@ import {
   query,
   where,
   limit,
+  increment,
 } from "firebase/firestore";
 
 export interface Plan {
   id?: string;
   platformId: string;
-  planType: "basic" | "premium" | "enterprise";
+  planType: "free" | "premium" | "premium_pro";
   features: string[];
   price: number;
   maxQueries: number;
+  remainingQueries: number;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -88,35 +90,100 @@ export const deletePlan = async (planId: string): Promise<void> => {
   await deleteDoc(docRef);
 };
 
-// Default plan configurations
+// Decrement remaining queries for a platform
+export const decrementQueries = async (
+  platformId: string
+): Promise<boolean> => {
+  const plan = await getPlanByPlatformId(platformId);
+
+  if (!plan) {
+    throw new Error("Plan not found for platform");
+  }
+
+  if (plan.remainingQueries <= 0) {
+    return false; // No queries remaining
+  }
+
+  const docRef = doc(db, "plans", plan.id!);
+  await updateDoc(docRef, {
+    remainingQueries: increment(-1),
+    updatedAt: serverTimestamp(),
+  });
+
+  return true;
+};
+
+// Get plan usage statistics
+export const getPlanUsage = async (platformId: string): Promise<any> => {
+  const plan = await getPlanByPlatformId(platformId);
+
+  if (!plan) {
+    return null;
+  }
+
+  // Get total queries made by this platform
+  const queriesQuery = query(
+    collection(db, "queries"),
+    where("platformId", "==", platformId)
+  );
+  const queriesSnapshot = await getDocs(queriesQuery);
+  const totalQueries = queriesSnapshot.size;
+
+  return {
+    planType: plan.planType,
+    maxQueries: plan.maxQueries,
+    remainingQueries: plan.remainingQueries,
+    usedQueries: totalQueries,
+    usagePercentage:
+      plan.maxQueries > 0
+        ? Math.round((totalQueries / plan.maxQueries) * 100)
+        : 0,
+  };
+};
+
+// Reset monthly queries for all platforms
+export const resetMonthlyQueries = async (): Promise<void> => {
+  const plans = await getAllPlans();
+
+  for (const plan of plans) {
+    const defaultPlan = getDefaultPlans()[plan.planType];
+    if (defaultPlan) {
+      await updatePlan(plan.id!, {
+        remainingQueries: defaultPlan.maxQueries,
+      });
+    }
+  }
+};
+
+// Default plan configurations with new limits
 export const getDefaultPlans = () => ({
-  basic: {
-    planType: "basic" as const,
-    features: ["Basic credit score", "Limited queries", "Email support"],
-    price: 50,
-    maxQueries: 1000,
+  free: {
+    planType: "free" as const,
+    features: ["Basic credit score", "100 queries per month", "Email support"],
+    price: 0,
+    maxQueries: 100,
   },
   premium: {
     planType: "premium" as const,
     features: [
       "Advanced credit score",
-      "Unlimited queries",
+      "1,000 queries per month",
       "Priority support",
       "Analytics",
     ],
-    price: 150,
-    maxQueries: 10000,
+    price: 50,
+    maxQueries: 1000,
   },
-  enterprise: {
-    planType: "enterprise" as const,
+  premium_pro: {
+    planType: "premium_pro" as const,
     features: [
       "Custom credit score",
-      "Unlimited queries",
+      "10,000 queries per month",
       "Dedicated support",
       "Advanced analytics",
       "API access",
     ],
-    price: 500,
-    maxQueries: -1, // Unlimited
+    price: 150,
+    maxQueries: 10000,
   },
 });

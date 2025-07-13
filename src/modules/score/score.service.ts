@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { FirebaseService } from "../../firebase/firebase.service";
+import { decrementQueries } from "../../services/plan.service";
 
 @Injectable()
 export class ScoreService {
@@ -26,6 +27,13 @@ export class ScoreService {
     walletAddress: string;
     timestamp: string;
   }> {
+    // Decrement remaining queries first
+    const hasQueriesRemaining = await decrementQueries(platformId);
+
+    if (!hasQueriesRemaining) {
+      throw new Error("No remaining queries in plan");
+    }
+
     const score = await this.calculateScore(walletAddress);
 
     // Log the query
