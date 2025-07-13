@@ -26,6 +26,13 @@ export class CreatePlatformDto {
   contactEmail: string;
 
   @ApiProperty({
+    description: "Owner wallet address for the platform",
+    example: "GABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZA567BCD890EFG",
+  })
+  @IsString()
+  ownerAddress: string;
+
+  @ApiProperty({
     description: "Type of plan for the platform",
     enum: ["basic", "premium", "enterprise"],
     example: "basic",

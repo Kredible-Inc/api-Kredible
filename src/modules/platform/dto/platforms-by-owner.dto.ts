@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 
-export class PlatformResponseDto {
+export class PlatformByOwnerDto {
   @ApiProperty({ example: "abc123def456" })
   id: string;
 
@@ -20,15 +20,10 @@ export class PlatformResponseDto {
 
   @ApiProperty({ example: "basic" })
   planType: string;
-}
 
-export class ApiKeyResponseDto {
-  @ApiProperty({ example: "pk_abc123def456" })
-  apiKey: string;
-
-  @ApiProperty({ example: "abc123def456" })
-  platformId: string;
-
-  @ApiProperty({ example: "Mi Plataforma de Prueba" })
-  platformName: string;
+  @ApiProperty({
+    description: "Indicates if the platform has an API key",
+    example: true,
+  })
+  hasApiKey: boolean;
 }

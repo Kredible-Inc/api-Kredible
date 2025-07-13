@@ -8,6 +8,7 @@ import {
   getPlatformByApiKey,
   updatePlatform,
   getPlatformById,
+  getPlatformsByOwnerAddress,
 } from "../../services/platform.service";
 import { Platform } from "../../services/platform.service";
 import { v4 as uuidv4 } from "uuid";
@@ -18,6 +19,7 @@ export class PlatformService {
     name: string;
     description?: string;
     contactEmail: string;
+    ownerAddress: string;
     planType: "basic" | "premium" | "enterprise";
   }): Promise<any> {
     // Create platform without API key initially
@@ -25,6 +27,7 @@ export class PlatformService {
       name: platformData.name,
       description: platformData.description,
       contactEmail: platformData.contactEmail,
+      ownerAddress: platformData.ownerAddress,
       planType: platformData.planType,
     };
 
@@ -36,8 +39,23 @@ export class PlatformService {
       name: createdPlatform.name,
       description: createdPlatform.description,
       contactEmail: createdPlatform.contactEmail,
+      ownerAddress: createdPlatform.ownerAddress,
       planType: createdPlatform.planType,
     };
+  }
+
+  async getPlatformsByOwnerAddress(ownerAddress: string): Promise<any[]> {
+    const platforms = await getPlatformsByOwnerAddress(ownerAddress);
+
+    return platforms.map((platform) => ({
+      id: platform.id,
+      name: platform.name,
+      description: platform.description,
+      contactEmail: platform.contactEmail,
+      ownerAddress: platform.ownerAddress,
+      planType: platform.planType,
+      hasApiKey: !!platform.apiKey,
+    }));
   }
 
   async getApiKey(platformId: string, contactEmail: string): Promise<any> {

@@ -18,6 +18,7 @@ export interface Platform {
   name: string;
   description?: string;
   contactEmail: string;
+  ownerAddress: string;
   planType: "basic" | "premium" | "enterprise";
   apiKey?: string;
   createdAt?: any;
@@ -76,6 +77,21 @@ export const getPlatformByApiKey = async (
 
   const doc = snapshot.docs[0];
   return { id: doc.id, ...doc.data() } as Platform;
+};
+
+export const getPlatformsByOwnerAddress = async (
+  ownerAddress: string
+): Promise<Platform[]> => {
+  const platformsQuery = query(
+    platformsCollection(),
+    where("ownerAddress", "==", ownerAddress)
+  );
+  const snapshot = await getDocs(platformsQuery);
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Platform[];
 };
 
 export const getAllPlatforms = async (): Promise<Platform[]> => {

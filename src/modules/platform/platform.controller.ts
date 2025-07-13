@@ -1,5 +1,19 @@
-import { Controller, Post, Body, Get, Param, UseGuards } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from "@nestjs/swagger";
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  UseGuards,
+  Query,
+} from "@nestjs/common";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiQuery,
+} from "@nestjs/swagger";
 import { PlatformService } from "./platform.service";
 import { AdminKeyGuard } from "../../auth/admin-key.guard";
 import { ApiResponseDto } from "../../common/dto/api-response.dto";
@@ -9,6 +23,7 @@ import {
   PlatformResponseDto,
   ApiKeyResponseDto,
 } from "./dto/platform-response.dto";
+import { PlatformByOwnerDto } from "./dto/platforms-by-owner.dto";
 
 @ApiTags("platforms")
 @Controller("platforms")
@@ -40,6 +55,11 @@ export class PlatformController {
               example: "Una plataforma para probar la API de Kredible",
             },
             contactEmail: { type: "string", example: "admin@miplataforma.com" },
+            ownerAddress: {
+              type: "string",
+              example:
+                "GABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZA567BCD890EFG",
+            },
             planType: { type: "string", example: "basic" },
           },
         },
@@ -58,6 +78,69 @@ export class PlatformController {
       await this.platformService.createPlatform(createPlatformDto);
 
     return new ApiResponseDto(true, "Platform created successfully", platform);
+  }
+
+  @Get("by-owner")
+  @ApiOperation({
+    summary: "Get platforms by owner address",
+    description: "Retrieves all platforms owned by a specific wallet address",
+  })
+  @ApiQuery({
+    name: "ownerAddress",
+    description: "Wallet address of the platform owner",
+    example: "GABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZA567BCD890EFG",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Platforms retrieved successfully",
+    schema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean", example: true },
+        message: {
+          type: "string",
+          example: "Platforms retrieved successfully",
+        },
+        data: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string", example: "abc123def456" },
+              name: { type: "string", example: "Mi Plataforma de Prueba" },
+              description: {
+                type: "string",
+                example: "Una plataforma para probar la API de Kredible",
+              },
+              contactEmail: {
+                type: "string",
+                example: "admin@miplataforma.com",
+              },
+              ownerAddress: {
+                type: "string",
+                example:
+                  "GABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZA567BCD890EFG",
+              },
+              planType: { type: "string", example: "basic" },
+              hasApiKey: { type: "boolean", example: true },
+            },
+          },
+        },
+        timestamp: { type: "string", example: "2025-07-12T23:30:00.000Z" },
+      },
+    },
+  })
+  async getPlatformsByOwnerAddress(
+    @Query("ownerAddress") ownerAddress: string
+  ): Promise<ApiResponseDto<PlatformByOwnerDto[]>> {
+    const platforms =
+      await this.platformService.getPlatformsByOwnerAddress(ownerAddress);
+
+    return new ApiResponseDto(
+      true,
+      "Platforms retrieved successfully",
+      platforms
+    );
   }
 
   @Post("api-key")
