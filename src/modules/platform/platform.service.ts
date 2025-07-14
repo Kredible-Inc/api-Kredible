@@ -86,6 +86,26 @@ export class PlatformService {
     };
   }
 
+  async getApiKeyById(platformId: string): Promise<any> {
+    // Get platform by ID
+    const platform = await getPlatformById(platformId);
+
+    if (!platform) {
+      throw new NotFoundException("Platform not found");
+    }
+
+    // Check if API key exists
+    if (!platform.apiKey) {
+      throw new NotFoundException("API key not found for this platform");
+    }
+
+    return {
+      apiKey: platform.apiKey,
+      platformId: platform.id,
+      platformName: platform.name,
+    };
+  }
+
   async getPlatformByApiKey(apiKey: string): Promise<any> {
     return await getPlatformByApiKey(apiKey);
   }

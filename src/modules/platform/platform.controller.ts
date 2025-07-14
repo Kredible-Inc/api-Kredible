@@ -23,6 +23,7 @@ import { ApiKeyGuard } from "../../auth/api-key.guard";
 import { ApiResponseDto } from "../../common/dto/api-response.dto";
 import { CreatePlatformDto } from "./dto/create-platform.dto";
 import { GetApiKeyDto } from "./dto/get-api-key.dto";
+import { GetApiKeyByIdDto } from "./dto/get-api-key-by-id.dto";
 import {
   PlatformResponseDto,
   ApiKeyResponseDto,
@@ -241,6 +242,56 @@ export class PlatformController {
       getApiKeyDto.platformId,
       getApiKeyDto.contactEmail
     );
+
+    return new ApiResponseDto(
+      true,
+      "API key retrieved successfully",
+      apiKeyData
+    );
+  }
+
+  @Get("api-key/:platformId")
+  @ApiOperation({
+    summary: "Get existing API key for a platform",
+    description:
+      "Retrieves the existing API key for a platform using only the platform ID. Returns error if no API key exists.",
+  })
+  @ApiParam({
+    name: "platformId",
+    description: "Platform ID to get API key for",
+    example: "abc123def456",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "API key retrieved successfully",
+    schema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean", example: true },
+        message: { type: "string", example: "API key retrieved successfully" },
+        data: {
+          type: "object",
+          properties: {
+            apiKey: { type: "string", example: "pk_abc123def456" },
+            platformId: { type: "string", example: "abc123def456" },
+            platformName: {
+              type: "string",
+              example: "Mi Plataforma de Prueba",
+            },
+          },
+        },
+        timestamp: { type: "string", example: "2025-07-12T23:30:00.000Z" },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Platform not found or API key not found",
+  })
+  async getApiKeyById(
+    @Param("platformId") platformId: string
+  ): Promise<ApiResponseDto<ApiKeyResponseDto>> {
+    const apiKeyData = await this.platformService.getApiKeyById(platformId);
 
     return new ApiResponseDto(
       true,
