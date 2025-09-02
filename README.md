@@ -1,6 +1,6 @@
 # Credit Score API - NestJS
 
-A **decentralized Credit Score system using Stellar** where external platforms can query the score of a wallet address via API.
+A **decentralized Credit Score system ** where external platforms can query the score of a wallet address via API.
 
 ## 🎯 System Objective
 
